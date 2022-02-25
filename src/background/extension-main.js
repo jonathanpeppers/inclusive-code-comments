@@ -44,34 +44,13 @@ class BackgroundApp {
                 browser.runtime.onMessage.addListener(this._onMessage),
                 DictionarySync.init(),
                 this._updateIcon(),
-                window.setInterval(() => this._updateIcon(), config.UI_MODE_RECHECK_INTERVAL),
                 this._checkForPaidSubscription(),
-                window.setInterval(() => this._checkForPaidSubscription(), config.ACCOUNT_STATUS_RECHECK_INTERVAL),
                 this._loadConfiguration(),
-                window.setInterval(() => this._loadConfiguration(), config.EXTERNAL_CONFIG_RELOAD_INTERVAL),
-                this._ping(),
-                window.setInterval(() => this._ping(), config.PING_INTERVAL),
                 BrowserDetector.isFirefox())
             ) {
-                const e = () => {
-                    browser.runtime.onUpdateAvailable.removeListener(e), this._installUpdate();
-                };
-                browser.runtime.onUpdateAvailable.addListener(e);
             }
             this._isInitialized = !0;
         }
-    }
-    static _installUpdate() {
-        browser.tabs.query({}).then((e) => {
-            e.forEach((e) => {
-                if (!e.id) return;
-                browser.tabs.sendMessage(e.id, { command: "DESTROY" }).catch(console.error.bind(console));
-            });
-        }),
-            Tracker.trackEvent("Action", "pre_update"),
-            window.setTimeout(() => {
-                browser.runtime.reload();
-            }, 2e3);
     }
     static _assignToTestGroups() {
         EnvironmentAdapter.isProductionEnvironment();
@@ -176,17 +155,6 @@ class BackgroundApp {
                 Tracker.trackError("js", `Error checking paid subscripton: ${e && e.reason} - ${e && e.status}`);
             });
         });
-    }
-    static _ping() {
-        (this._lastPing && this._lastPing + config.PING_INTERVAL > Date.now()) ||
-            ((this._lastPing = Date.now()),
-            this._storageController.onReady(() => {
-                if (this._storageController.isUsedCustomServer()) return;
-                const { username: e } = this._storageController.getSettings();
-                if (!e) return;
-                const t = new FormData();
-                t.append("email", e), t.append("useragent", BrowserDetector.getUserAgentIdentifier()), fetch(config.PING_URL, { method: "POST", mode: "cors", credentials: "omit", body: t }).catch(() => null);
-            }));
     }
     static _onInstalled(e) {
         const { reason: t, previousVersion: a } = e;
