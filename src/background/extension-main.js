@@ -44,34 +44,13 @@ class BackgroundApp {
                 browser.runtime.onMessage.addListener(this._onMessage),
                 DictionarySync.init(),
                 this._updateIcon(),
-                window.setInterval(() => this._updateIcon(), config.UI_MODE_RECHECK_INTERVAL),
                 this._checkForPaidSubscription(),
-                window.setInterval(() => this._checkForPaidSubscription(), config.ACCOUNT_STATUS_RECHECK_INTERVAL),
                 this._loadConfiguration(),
-                window.setInterval(() => this._loadConfiguration(), config.EXTERNAL_CONFIG_RELOAD_INTERVAL),
-                this._ping(),
-                window.setInterval(() => this._ping(), config.PING_INTERVAL),
                 BrowserDetector.isFirefox())
             ) {
-                const e = () => {
-                    browser.runtime.onUpdateAvailable.removeListener(e), this._installUpdate();
-                };
-                browser.runtime.onUpdateAvailable.addListener(e);
             }
             this._isInitialized = !0;
         }
-    }
-    static _installUpdate() {
-        browser.tabs.query({}).then((e) => {
-            e.forEach((e) => {
-                if (!e.id) return;
-                browser.tabs.sendMessage(e.id, { command: "DESTROY" }).catch(console.error.bind(console));
-            });
-        }),
-            Tracker.trackEvent("Action", "pre_update"),
-            window.setTimeout(() => {
-                browser.runtime.reload();
-            }, 2e3);
     }
     static _assignToTestGroups() {
         EnvironmentAdapter.isProductionEnvironment();
@@ -95,7 +74,7 @@ class BackgroundApp {
             this._darkMode !== e &&
                 ((this._darkMode = e),
                 this._darkMode
-                    ? browser.browserAction.setIcon({
+                    ? browser.action.setIcon({
                           path: {
                               16: "/assets/images/icons/icon16_white.png",
                               32: "/assets/images/icons/icon32_white.png",
@@ -104,7 +83,7 @@ class BackgroundApp {
                               128: "/assets/images/icons/icon128_white.png",
                           },
                       })
-                    : browser.browserAction.setIcon({
+                    : browser.action.setIcon({
                           path: { 16: "/assets/images/icons/icon16.png", 32: "/assets/images/icons/icon32.png", 48: "/assets/images/icons/icon48.png", 64: "/assets/images/icons/icon64.png", 128: "/assets/images/icons/icon128.png" },
                       }));
         });
@@ -119,14 +98,14 @@ class BackgroundApp {
         }
     }
     static _updateBadge(e, t) {
-        browser.browserAction.setBadgeTextColor && browser.browserAction.setBadgeTextColor({ tabId: e, color: "#FFFFFF" }),
+        browser.action.setBadgeTextColor && browser.action.setBadgeTextColor({ tabId: e, color: "#FFFFFF" }),
             t.enabled && t.supported
                 ? t.capitalization
-                    ? browser.browserAction.setBadgeText({ tabId: e, text: "" })
-                    : (browser.browserAction.setBadgeBackgroundColor && browser.browserAction.setBadgeBackgroundColor({ tabId: e, color: "#45A8FC" }),
-                      browser.browserAction.setBadgeText({ tabId: e, text: BrowserDetector.isOpera() ? "" : "abc" }))
-                : (browser.browserAction.setBadgeBackgroundColor && browser.browserAction.setBadgeBackgroundColor({ tabId: e, color: "#F53987" }),
-                  browser.browserAction.setBadgeText({ tabId: e, text: BrowserDetector.isOpera() ? "" : "OFF" }));
+                    ? browser.action.setBadgeText({ tabId: e, text: "" })
+                    : (browser.action.setBadgeBackgroundColor && browser.action.setBadgeBackgroundColor({ tabId: e, color: "#45A8FC" }),
+                      browser.action.setBadgeText({ tabId: e, text: BrowserDetector.isOpera() ? "" : "abc" }))
+                : (browser.action.setBadgeBackgroundColor && browser.action.setBadgeBackgroundColor({ tabId: e, color: "#F53987" }),
+                  browser.action.setBadgeText({ tabId: e, text: BrowserDetector.isOpera() ? "" : "OFF" }));
     }
     static _setMotherTongue() {
         this._storageController.onReady(() => {
@@ -176,17 +155,6 @@ class BackgroundApp {
                 Tracker.trackError("js", `Error checking paid subscripton: ${e && e.reason} - ${e && e.status}`);
             });
         });
-    }
-    static _ping() {
-        (this._lastPing && this._lastPing + config.PING_INTERVAL > Date.now()) ||
-            ((this._lastPing = Date.now()),
-            this._storageController.onReady(() => {
-                if (this._storageController.isUsedCustomServer()) return;
-                const { username: e } = this._storageController.getSettings();
-                if (!e) return;
-                const t = new FormData();
-                t.append("email", e), t.append("useragent", BrowserDetector.getUserAgentIdentifier()), fetch(config.PING_URL, { method: "POST", mode: "cors", credentials: "omit", body: t }).catch(() => null);
-            }));
     }
     static _onInstalled(e) {
         const { reason: t, previousVersion: a } = e;
